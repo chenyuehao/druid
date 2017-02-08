@@ -142,6 +142,7 @@ public enum Token {
     UNDO("UNDO"),
     SQLSTATE("SQLSTATE"),
     CONDITION("CONDITION"),
+    DIV("DIV"),
     
     //postgresql
     WINDOW("WINDOW"),
@@ -304,7 +305,10 @@ public enum Token {
     TILDE("~"),
     TILDE_STAR("~*"),
     TILDE_EQ("~="),
-    QUES("?"), 
+    QUES("?"),
+    QUESQUES("?？"),
+    QUESBAR("?|"),
+    QUESAMP("?&"),
     COLON(":"), 
     COLONCOLON("::"), 
     COLONEQ(":="), 

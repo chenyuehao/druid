@@ -102,6 +102,10 @@ public class Lexer {
         this(input, true);
         this.commentHandler = commentHandler;
         this.dbType = dbType;
+
+        if (JdbcConstants.SQLITE.equals(dbType)) {
+            this.keywods = Keywords.SQLITE_KEYWORDS;
+        }
     }
     
     public boolean isKeepComments() {
@@ -446,7 +450,18 @@ public class Lexer {
                     return;
                 case '?':
                     scanChar();
-                    token = Token.QUES;
+                    if (ch == '?') {
+                        scanChar();
+                        token = Token.QUESQUES;
+                    } else if (ch == '|') {
+                        scanChar();
+                        token = Token.QUESBAR;
+                    } else if (ch == '&') {
+                        scanChar();
+                        token = Token.QUESAMP;
+                    } else {
+                        token = Token.QUES;
+                    }
                     return;
                 case ';':
                     scanChar();

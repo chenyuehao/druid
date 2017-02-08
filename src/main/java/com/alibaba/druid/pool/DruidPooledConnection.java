@@ -164,7 +164,7 @@ public class DruidPooledConnection extends PoolableWrapper implements javax.sql.
         }
 
         stmt.getPreparedStatementHolder().decrementInUseCount();
-        if (stmt.isPooled() && holder.isPoolPreparedStatements()) {
+        if (stmt.isPooled() && holder.isPoolPreparedStatements() && stmt.exceptionCount == 0) {
             holder.getStatementPool().put(stmt.getPreparedStatementHolder());
 
             stmt.clearResultSet();
@@ -1192,23 +1192,37 @@ public class DruidPooledConnection extends PoolableWrapper implements javax.sql.
     }
     
     /**
-     * @since 1.1.17
+     * @since 1.0.17
      */
     public long getPhysicalConnectNanoSpan() {
         return this.holder.getCreateNanoSpan();
     }
     
     /**
-     * @since 1.1.17
+     * @since 1.0.17
      */
     public long getPhysicalConnectionUsedCount() {
         return this.holder.getUseCount();
     }
     
     /**
-     * @since 1.1.17
+     * @since 1.0.17
      */
     public long getConnectNotEmptyWaitNanos() {
         return this.holder.getLastNotEmptyWaitNanos();
+    }
+
+    /**
+     * @since  1.0.28
+     */
+    public Map<String, Object> getVariables() {
+        return this.holder.variables;
+    }
+
+    /**
+     * @since  1.0.28
+     */
+    public Map<String, Object> getGloablVariables() {
+        return this.holder.globleVariables;
     }
 }

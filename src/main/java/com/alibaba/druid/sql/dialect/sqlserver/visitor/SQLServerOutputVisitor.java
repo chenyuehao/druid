@@ -18,12 +18,7 @@ package com.alibaba.druid.sql.dialect.sqlserver.visitor;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLSetQuantifier;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLAssignItem;
-import com.alibaba.druid.sql.ast.statement.SQLBlockStatement;
-import com.alibaba.druid.sql.ast.statement.SQLColumnConstraint;
-import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLGrantStatement;
+import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerOutput;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelect;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
@@ -40,15 +35,17 @@ import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerSetTransactionI
 import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerUpdateStatement;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.stmt.SQLServerWaitForStatement;
 import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
+import com.alibaba.druid.util.JdbcConstants;
 
 public class SQLServerOutputVisitor extends SQLASTOutputVisitor implements SQLServerASTVisitor {
 
     public SQLServerOutputVisitor(Appendable appender){
-        super(appender);
+        super(appender, JdbcConstants.SQL_SERVER);
     }
 
     public SQLServerOutputVisitor(Appendable appender, boolean parameterized){
         super(appender, parameterized);
+        this.dbType = JdbcConstants.SQL_SERVER;
     }
 
     public boolean visit(SQLServerSelectQueryBlock x) {
@@ -569,7 +566,19 @@ public class SQLServerOutputVisitor extends SQLASTOutputVisitor implements SQLSe
 
 	@Override
 	public void endVisit(SQLServerParameter x) {
-		// TODO Auto-generated method stub
+
 		
 	}
+
+    @Override
+    public boolean visit(SQLStartTransactionStatement x) {
+        print0(ucase ? "BEGIN TRANSACTION" : "begin transaction");
+
+        if (x.getName() != null) {
+            print(' ');
+            x.getName().accept(this);
+        }
+
+        return false;
+    }
 }

@@ -179,7 +179,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlShowTableStatusSta
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlShowTriggersStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlShowVariantsStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlShowWarningsStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlStartTransactionStatement;
+import com.alibaba.druid.sql.ast.statement.SQLStartTransactionStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnlockTablesStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MysqlDeallocatePrepareStatement;
@@ -218,12 +218,22 @@ public class MySqlStatementParser extends SQLStatementParser {
     private static final String DELAYED        = "DELAYED";
     private static final String LOW_PRIORITY   = "LOW_PRIORITY";
 
+    private int maxIntoClause = -1;
+
     public MySqlStatementParser(String sql){
         super(new MySqlExprParser(sql));
     }
 
     public MySqlStatementParser(Lexer lexer){
         super(new MySqlExprParser(lexer));
+    }
+
+    public int getMaxIntoClause() {
+        return maxIntoClause;
+    }
+
+    public void setMaxIntoClause(int maxIntoClause) {
+        this.maxIntoClause = maxIntoClause;
     }
 
     public SQLCreateTableStatement parseCreateTable() {
@@ -314,7 +324,7 @@ public class MySqlStatementParser extends SQLStatementParser {
             deleteStatement.setOrderBy(orderBy);
         }
 
-        deleteStatement.setLimit(parseLimit());
+        deleteStatement.setLimit(this.exprParser.parseLimit());
 
         return deleteStatement;
     }
@@ -624,7 +634,7 @@ public class MySqlStatementParser extends SQLStatementParser {
         }
 
         if (identifierEquals("START")) {
-            MySqlStartTransactionStatement stmt = parseStart();
+            SQLStartTransactionStatement stmt = parseStart();
             statementList.add(stmt);
             return true;
         }
@@ -855,7 +865,7 @@ public class MySqlStatementParser extends SQLStatementParser {
             lexer.nextToken();
 
             MySqlShowErrorsStatement stmt = new MySqlShowErrorsStatement();
-            stmt.setLimit(parseLimit());
+            stmt.setLimit(this.exprParser.parseLimit());
 
             return stmt;
         }
@@ -988,7 +998,7 @@ public class MySqlStatementParser extends SQLStatementParser {
                 stmt.setFrom(this.exprParser.expr());
             }
 
-            stmt.setLimit(parseLimit());
+            stmt.setLimit(this.exprParser.parseLimit());
 
             return stmt;
         }
@@ -1331,7 +1341,7 @@ public class MySqlStatementParser extends SQLStatementParser {
                 stmt.setForQuery(this.exprParser.primary());
             }
 
-            stmt.setLimit(this.parseLimit());
+            stmt.setLimit(this.exprParser.parseLimit());
 
             return stmt;
         }
@@ -1351,7 +1361,7 @@ public class MySqlStatementParser extends SQLStatementParser {
                 stmt.setFrom(this.exprParser.primary());
             }
 
-            stmt.setLimit(this.parseLimit());
+            stmt.setLimit(this.exprParser.parseLimit());
 
             return stmt;
         }
@@ -1371,7 +1381,7 @@ public class MySqlStatementParser extends SQLStatementParser {
                 stmt.setFrom(this.exprParser.primary());
             }
 
-            stmt.setLimit(this.parseLimit());
+            stmt.setLimit(this.exprParser.parseLimit());
 
             return stmt;
         }
@@ -1478,7 +1488,7 @@ public class MySqlStatementParser extends SQLStatementParser {
     private MySqlShowWarningsStatement parseShowWarnings() {
         MySqlShowWarningsStatement stmt = new MySqlShowWarningsStatement();
 
-        stmt.setLimit(parseLimit());
+        stmt.setLimit(this.exprParser.parseLimit());
 
         return stmt;
     }
@@ -1555,11 +1565,11 @@ public class MySqlStatementParser extends SQLStatementParser {
         return stmt;
     }
 
-    public MySqlStartTransactionStatement parseStart() {
+    public SQLStartTransactionStatement parseStart() {
         acceptIdentifier("START");
         acceptIdentifier("TRANSACTION");
 
-        MySqlStartTransactionStatement stmt = new MySqlStartTransactionStatement();
+        SQLStartTransactionStatement stmt = new SQLStartTransactionStatement();
 
         if (lexer.token() == Token.WITH) {
             lexer.nextToken();
@@ -2087,7 +2097,7 @@ public class MySqlStatementParser extends SQLStatementParser {
     }
 
     private void parseValueClause(List<ValuesClause> valueClauseList, int columnSize) {
-        for (;;) {
+        for (int i = 0;;++i) {
             if (lexer.token() != Token.LPAREN) {
                 throw new ParserException("syntax error, expect ')'");
             }
@@ -2310,10 +2320,6 @@ public class MySqlStatementParser extends SQLStatementParser {
 
             return stmt;
         }
-    }
-
-    public SQLLimit parseLimit() {
-        return ((MySqlExprParser) this.exprParser).parseLimit();
     }
 
     public SQLStatement parseAlter() {

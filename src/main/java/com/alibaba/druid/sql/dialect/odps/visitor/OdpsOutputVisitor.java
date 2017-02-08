@@ -513,10 +513,10 @@ public class OdpsOutputVisitor extends SQLASTOutputVisitor implements OdpsASTVis
             x.getOrderBy().accept(this);
         }
 
-        if (x.getDistributeBy() != null) {
+        if (x.getDistributeBy().size() > 0) {
             println();
             print0(ucase ? "DISTRIBUTE BY " : "distribute by ");
-            x.getDistributeBy().accept(this);
+            printAndAccept(x.getDistributeBy(), ", ");
 
             if (!x.getSortBy().isEmpty()) {
                 print0(ucase ? " SORT BY " : " sort by ");
@@ -526,7 +526,6 @@ public class OdpsOutputVisitor extends SQLASTOutputVisitor implements OdpsASTVis
 
         if (x.getLimit() != null) {
             println();
-            print0(ucase ? "LIMIT " : "limit ");
             x.getLimit().accept(this);
         }
 

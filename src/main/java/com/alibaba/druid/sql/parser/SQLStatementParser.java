@@ -15,6 +15,7 @@
  */
 package com.alibaba.druid.sql.parser;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +31,6 @@ import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.ast.statement.SQLCreateTriggerStatement.TriggerEvent;
 import com.alibaba.druid.sql.ast.statement.SQLCreateTriggerStatement.TriggerType;
 import com.alibaba.druid.util.JdbcConstants;
-import org.apache.ibatis.jdbc.SQL;
 
 public class SQLStatementParser extends SQLParser {
 
@@ -992,6 +992,10 @@ public class SQLStatementParser extends SQLParser {
                     }
 
                     stmt.addItem(item);
+                } else if (JdbcConstants.ODPS.equals(dbType) && identifierEquals("MERGE")) {
+                    lexer.nextToken();
+                    acceptIdentifier("SMALLFILES");
+                    stmt.setMergeSmallFiles(true);
                 } else {
                     break;
                 }
@@ -1054,13 +1058,13 @@ public class SQLStatementParser extends SQLParser {
     public void parseAlterDrop(SQLAlterTableStatement stmt) {
         lexer.nextToken();
 
-        boolean ifNotExists = false;
+        boolean ifExists = false;
 
         if (lexer.token() == Token.IF) {
             lexer.nextToken();
-            accept(Token.NOT);
+
             accept(Token.EXISTS);
-            ifNotExists = true;
+            ifExists = true;
         }
 
         if (lexer.token() == Token.CONSTRAINT) {
@@ -1090,7 +1094,7 @@ public class SQLStatementParser extends SQLParser {
 
             stmt.addItem(item);
         } else if (lexer.token() == Token.PARTITION) {
-            SQLAlterTableDropPartition dropPartition = parseAlterTableDropPartition(ifNotExists);
+            SQLAlterTableDropPartition dropPartition = parseAlterTableDropPartition(ifExists);
 
             stmt.addItem(dropPartition);
         } else if (lexer.token() == Token.INDEX) {
@@ -1104,11 +1108,11 @@ public class SQLStatementParser extends SQLParser {
         }
     }
 
-    protected SQLAlterTableDropPartition parseAlterTableDropPartition(boolean ifNotExists) {
+    protected SQLAlterTableDropPartition parseAlterTableDropPartition(boolean ifExists) {
         lexer.nextToken();
         SQLAlterTableDropPartition dropPartition = new SQLAlterTableDropPartition();
 
-        dropPartition.setIfNotExists(ifNotExists);
+        dropPartition.setIfExists(ifExists);
 
         if (lexer.token() == Token.LPAREN) {
             accept(Token.LPAREN);
@@ -1182,7 +1186,7 @@ public class SQLStatementParser extends SQLParser {
                 continue;
             }
 
-            if (lexer.token() == Token.PURGE) {
+            if (lexer.token() == Token.PURGE || identifierEquals("PURGE")) {
                 lexer.nextToken();
                 stmt.setPurge(true);
                 continue;
@@ -2022,12 +2026,24 @@ public class SQLStatementParser extends SQLParser {
         }
         return item;
     }
-
+    
     public SQLStatement parseStatement() {
+        return parseStatement(false);
+    }
+    
+    /**
+    * @param tryBest  - 为true去解析并忽略之后的错误
+    *  强制建议除非明确知道可以忽略才传tryBest=true,
+    *  不然会忽略语法错误，且截断sql,导致update和delete无where条件下执行！！！
+    */
+    public SQLStatement parseStatement( final boolean tryBest) {
         List<SQLStatement> list = new ArrayList<SQLStatement>();
-
         this.parseStatementList(list, 1);
-
+        if (tryBest) {
+            if (lexer.token() != Token.EOF) {
+                throw new ParserException("sql syntax error, no terminated. " + lexer.token());
+            }
+        }
         return list.get(0);
     }
 
